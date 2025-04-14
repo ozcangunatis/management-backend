@@ -18,7 +18,7 @@ JWT Yetkileri:
 .requestMatchers("/api/leave-requests/**").hasAnyRole("ADMIN", "USER", "EMPLOYEE") // ADMIN-USER-EMPLOYEE  
 .requestMatchers("/api/leave-balance/**").hasAnyRole("ADMIN", "EMPLOYEE", "USER") // ADMIN - USER- EMPLOYEE  
 
-AUTHENTICATION KİMLİK DOĞRULAMA  
+**AUTHENTICATION KİMLİK DOĞRULAMA**  
 POST /api/auth/register  
 Yeni kullanıcı kaydı. Request body içinde firstName, lastName, email, password, role alanları olmalıdır  
 
