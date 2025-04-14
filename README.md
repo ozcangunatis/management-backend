@@ -1,1 +1,1 @@
-# izin_yonetimi
+# İzin Yönetimi Projesi
