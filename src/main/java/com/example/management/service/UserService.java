@@ -10,9 +10,13 @@ import com.example.management.repositories.UserRepository;
 import com.example.management.response.GetUsersResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,8 +63,12 @@ public class UserService {
 
     @Transactional
     public UserDto addUser(UserCreateDto userCreateDto) {
+        User currentUser = getCurrentAuthenticatedUser();
         if (userCreateDto.getPassword() == null || userCreateDto.getPassword().isEmpty()) {
             throw new IllegalArgumentException("Password cannot be null or empty!");
+        }
+        if (currentUser.getRole() == Role.HR && userCreateDto.getRole() != Role.EMPLOYEE) {
+            throw new AccessDeniedException("HR can only create EMPLOYEE users.");
         }
 
         log.info("Request DTO user: " + userCreateDto);
@@ -118,7 +126,24 @@ public class UserService {
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
+    private User getCurrentAuthenticatedUser() {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No authenticated user found.");
+        }
+
+        String email = authentication.getName();
 
 
 
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+
+        System.out.println("Aktif kullanıcı: " + user.getEmail() + " | Rolü: " + user.getRole());
+
+        return user;
+    }
 }

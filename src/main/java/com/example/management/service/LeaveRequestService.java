@@ -1,5 +1,7 @@
 package com.example.management.service;
 
+import com.example.management.dto.StatsResponseDto;
+import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
 import com.example.management.models.Enum.LeaveStatus;
 import com.example.management.models.LeaveBalance;
@@ -11,14 +13,23 @@ import com.example.management.repositories.UserRepository;
 import com.example.management.response.LeaveRequestResponse;
 import lombok.RequiredArgsConstructor;
 import com.example.management.dto.LeaveRequestDto;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.management.request.UpdateLeaveStatusRequest;
 
+
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+
 
 @Service
 @RequiredArgsConstructor
@@ -110,5 +121,115 @@ public class LeaveRequestService {
         }
         return false;
     }
+    private User getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No authenticated user found.");
+        }
+
+        String email = authentication.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+    }
+
+    public List<LeaveRequestDto> getLeaveRequestsForCurrentUser() {
+        User currentUser = getCurrentAuthenticatedUser();
+        List<LeaveRequest> leaveRequests = leaveRequestRepository.findByUserId(currentUser.getId());
+        if(
+                leaveRequests.isEmpty()){
+            throw new IllegalStateException("No leave requests found!");
+        }
+        return leaveRequests.stream()
+                .map(leaveRequestMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    public List<LeaveRequestDto> getAllLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
+        List<LeaveRequest> requests = leaveRequestRepository
+                .findByStartDateGreaterThanEqualAndEndDateLessThanEqual(start, end);
+        if(requests.isEmpty()){
+            throw new IllegalStateException("No leave requests found!");
+        }
+        return requests.stream()
+                .map(leaveRequestMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    public List<LeaveRequestDto> getMyLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
+        User currentUser = getCurrentAuthenticatedUser();
+
+        List<LeaveRequest> leaveRequests = leaveRequestRepository.findByUserIdAndStartDateBetween(
+                currentUser.getId(), start, end);
+
+        if (leaveRequests.isEmpty()) {
+            throw new IllegalStateException("No leave requests were found between the specified dates.");
+        }
+
+        return leaveRequests.stream()
+                .map(leaveRequestMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    public List<LeaveRequestDto> getLeaveRequestsByUserIdAndDateRange(Long userId, LocalDate start, LocalDate end) {
+        List<LeaveRequest> leaveRequests = leaveRequestRepository.findByUserIdAndStartDateBetween(userId, start, end);
+
+        if (leaveRequests.isEmpty()) {
+            throw new IllegalStateException("No leave requests were found for this person between the specified dates.");
+        }
+
+        return leaveRequests.stream()
+                .map(leaveRequestMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public LeaveRequest updateLeaveRequestDates(Long requestId,Long currentUserId, UpdateLeaveRequestDatesRequest requestDto) {
+        Optional<LeaveRequest> optionalRequestOpt = leaveRequestRepository.findById(requestId);
+        if (optionalRequestOpt.isEmpty()) {
+            throw new IllegalArgumentException("Leave request not found!");
+        }
+        LeaveRequest leaveRequest = optionalRequestOpt.get();
+        if (leaveRequest.getUser().getId() != currentUserId) {
+            throw new SecurityException("You can only update your own leave requests.");
+        }
+        if (!leaveRequest.getStatus().equals(LeaveStatus.PENDING)) {
+            throw new IllegalStateException("Only pending leave requests can be updated.");
+        }
+        if (requestDto.getStartDate() != null) {
+            leaveRequest.setStartDate(requestDto.getStartDate());
+        }
+        if (requestDto.getEndDate() != null) {
+            leaveRequest.setEndDate(requestDto.getEndDate());
+        }
+        return leaveRequestRepository.save(leaveRequest);
+    }
+     //===========================================DASHBOARD======================================
+    public StatsResponseDto getStats() {
+        long totalUsers = userRepository.count();
+        long totalLeaveRequests = leaveRequestRepository.count();
+        long pendingLeaveRequests = leaveRequestRepository.countByStatus(LeaveStatus.PENDING);
+        long approvedLeaveRequests = leaveRequestRepository.countByStatus(LeaveStatus.APPROVED);
+        long rejectedLeaveRequests = leaveRequestRepository.countByStatus(LeaveStatus.REJECTED);
+
+        List<Object[]> montlyCounts = leaveRequestRepository.countLeaveRequestsByMonth();
+
+        String mostPopularLeaveMonth= "N/A";
+        int maxCount= 0;
+
+        for (Object[] row : montlyCounts) {
+            int monthValue = ((Number) row[0]).intValue(); // 1-12
+            int count = ((Number) row[1]).intValue();
+
+            if (count > maxCount) {
+                maxCount = count;
+                mostPopularLeaveMonth = Month.of(monthValue).name();
+            }
+        }
+        return new StatsResponseDto(
+                totalUsers,
+                totalLeaveRequests,
+                pendingLeaveRequests,
+                approvedLeaveRequests,
+                rejectedLeaveRequests,
+                mostPopularLeaveMonth
+        );
+    }
 }

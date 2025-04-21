@@ -8,6 +8,7 @@ import com.example.management.response.GetUsersResponse;
 import com.example.management.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -30,11 +31,7 @@ public class UserController {
         Optional<UserDto> user = userService.getUserById(id);
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
-    // yeni kullanıcı ekleme
-    @PostMapping
-    public ResponseEntity<UserDto> addUser(@RequestBody UserCreateDto userDto) {
-        return ResponseEntity.ok(userService.addUser(userDto));
-    }
+
     // kullanıcı güncelleme
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserUpdateDto userUpdateDto) {
@@ -50,6 +47,12 @@ public class UserController {
         catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("User Not Found.");
         }
+    }
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN',HR)")
+    public ResponseEntity<UserDto> addser(@RequestBody UserCreateDto userDto) {
+        UserDto createdUser = userService.addUser(userDto);
+        return ResponseEntity.ok(createdUser);
     }
 
 }

@@ -2,7 +2,6 @@ package com.example.management.controller;
 
 import com.example.management.auth.AuthenticationRequest;
 import com.example.management.auth.AuthenticationResponse;
-import com.example.management.auth.RegisterRequest;
 import com.example.management.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +19,5 @@ public class AuthenticationController {
         AuthenticationResponse response = authenticationService.authenticate(request);
         return ResponseEntity.ok(response);
     }
-    @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authenticationService.register(request));
-    }
+
 }

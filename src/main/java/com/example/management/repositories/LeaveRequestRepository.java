@@ -2,22 +2,28 @@ package com.example.management.repositories;
 
 import com.example.management.models.Enum.LeaveStatus;
 import com.example.management.models.LeaveRequest;
-
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
+
+
+    long countByStatus(LeaveStatus status);
+
+    @Query("SELECT MONTH(l.startDate), COUNT(l) FROM LeaveRequest l GROUP BY MONTH(l.startDate)")
+    List<Object[]> countLeaveRequestsByMonth();
+
+
     List<LeaveRequest> findByUserId(Long userId);
-    //Onaylanmamış izin taleplerini getir
-    List<LeaveRequest>findByStatus(String status);
-    //belirli kullanıcıya ait belirli bir izin talebi var mı kontrol et
+    List<LeaveRequest> findByStatus(String status);
     boolean existsByIdAndStatus(Long id, String status);
-    //Belirli bir izin talebini ID ile getirme
     Optional<LeaveRequest> findByIdAndUserId(Long id, Long userId);
-
-
+    List<LeaveRequest> findByStartDateGreaterThanEqualAndEndDateLessThanEqual(LocalDate startDate, LocalDate endDate);
+    List<LeaveRequest> findByUserIdAndStartDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
 }

@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class UpdateLeaveBalanceRequestDto {
-    private int remainingDays;
+    private int totalDays;
 }
