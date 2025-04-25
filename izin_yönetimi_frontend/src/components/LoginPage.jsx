@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { FaUserGroup, FaUser, FaEyeSlash, FaGoogle } from "react-icons/fa6";
 import { RiAppleLine } from "react-icons/ri";
 
@@ -10,7 +10,6 @@ function LoginPage() {
                     <h1 className="text-2xl font-bold">GİRİŞ YAP</h1>
                     <FaUserGroup className="text-cyan-500 text-2xl mx-auto mt-2" />
                 </div>
-
 
                 <form className="space-y-4 text-left">
                     <div className="relative">
@@ -48,10 +47,6 @@ function LoginPage() {
                         Giriş Yap
                     </button>
                 </form>
-
-
-
-
             </div>
         </div>
     );

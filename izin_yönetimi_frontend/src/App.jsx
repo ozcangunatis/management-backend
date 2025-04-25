@@ -1,21 +1,23 @@
 import React from "react";
-import ChangePasswordPage from "./components/ChangePasswordPage";
-import LoginPage from "./components/LoginPage";
-import "./index.css";
+import "./App.css";
+import Register from "./components/register";
 import HomePage from "./components/HomePage";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import Register from "./components/LoginPage";
-function App() {
+import LoginPage from "./components/LoginPage";
+import ChangePasswordPage from "./components/ChangePasswordPage";
+import IzinOnay from "./components/IzinOnay";
+
+const App = () => {
   return (
     <Router>
       <div>
         <HomePage />
-        <ChangePasswordPage />
         <LoginPage />
-        <Register />
+        <ChangePasswordPage />
+
       </div>
     </Router>
   );
-}
+};
 
 export default App;
