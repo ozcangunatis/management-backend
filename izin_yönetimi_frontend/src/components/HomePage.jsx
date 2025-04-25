@@ -1,5 +1,4 @@
 import { BellOutlined } from "@ant-design/icons";
-import { UserOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Space, Tooltip } from "antd";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import IzinOlustur from "./IzinOlustur";
@@ -86,13 +85,6 @@ function HomePage() {
               className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
             >
               DASHBOARD
-            </Link>
-
-            <Link
-              to="izin-olustur"
-              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
-            >
-              İzin Talebi Oluştur
             </Link>
 
             <Link

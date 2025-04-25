@@ -4,15 +4,13 @@ import LoginPage from "./components/LoginPage";
 import "./index.css";
 import HomePage from "./components/HomePage";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import Register from "./components/LoginPage";
+import Register from "./components/Register";
+
 function App() {
   return (
     <Router>
       <div>
         <HomePage />
-        <ChangePasswordPage />
-        <LoginPage />
-        <Register />
       </div>
     </Router>
   );
