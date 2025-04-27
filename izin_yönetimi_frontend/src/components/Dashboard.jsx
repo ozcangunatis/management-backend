@@ -51,6 +51,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* KART YAPISI */}
       <div className="space-y-8">
         <div
           className="grid grid-cols-4
@@ -90,6 +91,7 @@ function Dashboard() {
       </div>
 
       <div className="space-y-14">
+        {/* BUTONLARIN YAPISI */}
         <div className="flex flex-row ">
           <button
             onClick={openModal}
@@ -107,6 +109,8 @@ function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* MODAl YAPISI */}
         <Modal
           title=" Yeni İzin Oluşturma"
           centered
@@ -197,6 +201,8 @@ function Dashboard() {
             </div>
           </form>
         </Modal>
+
+        {/* TABLO YAPISI */}
         <div className="overflow-x-auto">
           <div className="flex justify-between items-center mb-4 border-b pb-1">
             <h2 className="text-lg font-bold text-gray-700">

@@ -11,6 +11,7 @@ function App() {
     <Router>
       <div>
         <HomePage />
+        <LoginPage />
       </div>
     </Router>
   );
