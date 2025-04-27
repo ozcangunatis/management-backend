@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { BellOutlined, MenuOutlined } from "@ant-design/icons";
 import { Button, Dropdown } from "antd";
+=======
+import { BellOutlined } from "@ant-design/icons";
+import { Button, Dropdown, Space, Tooltip } from "antd";
+>>>>>>> a4bc0a72505358434125e9942f4a12047fe92f1e
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState } from "react";
 import IzinOlustur from "./IzinOlustur";
@@ -84,7 +89,50 @@ function HomePage() {
         {/* Masaüstü Sidebar */}
         <aside className="hidden sm:block w-64 bg-gray-100 shadow-lg rounded-lg p-4 pt-12">
           <nav className="flex flex-col space-y-4">
+<<<<<<< HEAD
             <SidebarLinks />
+=======
+            <Link
+              to="dashboard"
+              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
+            >
+              DASHBOARD
+            </Link>
+
+            <Link
+              to="/izin-talepleri"
+              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
+            >
+              İzin Talepleri
+            </Link>
+
+            <Link
+              to="/izin-onay"
+              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
+            >
+              Onay Bekleyenler
+            </Link>
+            <Link
+              to="/izin_takvimi"
+              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
+            >
+              İzin Takvimi
+            </Link>
+
+            <Link
+              to="/PersonelListesi"
+              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
+            >
+              Personel Listesi
+            </Link>
+
+            <Link
+              to="/Raporlar"
+              className="px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200"
+            >
+              Raporlar
+            </Link>
+>>>>>>> a4bc0a72505358434125e9942f4a12047fe92f1e
           </nav>
         </aside>
 
