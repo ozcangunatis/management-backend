@@ -23,4 +23,6 @@ public class Office {
 
     @Column(name = "authorized_person")
     private Integer authorizedPerson;
+
+    // commit
 }
