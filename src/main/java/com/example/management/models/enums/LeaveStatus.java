@@ -1,4 +1,4 @@
-package com.example.management.models.Enum;
+package com.example.management.models.enums;
 
 public enum LeaveStatus {
     PENDING, // Beklemede

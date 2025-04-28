@@ -7,23 +7,37 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Table(name = "leave_balances")
 public class LeaveBalance {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_leave_balance")
     private Long id;
-    @OneToOne
-    @JoinColumn(name = "user_id",nullable = false)
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    @Column(nullable = false)
-    private Integer totalDays;
-    @Column(nullable = false)
-    private Integer usedDays; // kullanilmis izin gunleri
-    @Column(nullable = false)
-    private Integer remainingDays; // kalan izin gunleri
+
+    @ManyToOne
+    @JoinColumn(name = "leave_type_id", nullable = false)
+    private LeaveType leaveType;
+
+    @Column(name = "leave_year", nullable = false)
+    private int leaveYear;
+
+    @Column(name = "annual_leave_days", nullable = false)
+    private int annualLeaveDays;
+
+    @Column(name = "used_days", nullable = false)
+    private int usedDays;
+
+    @Column(name = "remaining_days", nullable = false)
+    private int remainingDays;
+
     @PrePersist
     @PreUpdate
     public void calculateRemainingDays() {
-        this.remainingDays = totalDays - usedDays;
+        this.remainingDays = this.annualLeaveDays - this.usedDays;
     }
-
 }

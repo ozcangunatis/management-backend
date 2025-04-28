@@ -10,7 +10,7 @@ public class LeaveBalanceMapper {
     public LeaveBalanceDto toDto(LeaveBalance entity) {
         LeaveBalanceDto dto = new LeaveBalanceDto();
         dto.setUserId(entity.getUser().getId());
-        dto.setTotalDays(entity.getTotalDays());
+        dto.setTotalDays(entity.getAnnualLeaveDays());
         dto.setUsedDays(entity.getUsedDays());
         dto.setRemainingDays(entity.getRemainingDays());
         return dto;

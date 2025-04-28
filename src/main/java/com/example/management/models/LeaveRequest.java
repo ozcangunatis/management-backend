@@ -1,7 +1,6 @@
 package com.example.management.models;
 
-import com.example.management.models.Enum.LeaveStatus;
-import com.example.management.models.Enum.LeaveType;
+import com.example.management.models.enums.LeaveStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,11 +17,15 @@ public class LeaveRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+
     @ManyToOne
-    @JoinColumn(name= "user_id",nullable = false)
+    @JoinColumn(name= "user_id", nullable = false)
     private User user;
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+
+
+    @ManyToOne
+    @JoinColumn(name = "leave_type_id", nullable = false)
     private LeaveType leaveType;
 
     @Column(nullable = false)
@@ -35,7 +38,12 @@ public class LeaveRequest {
     @Column(nullable = false)
     private LeaveStatus status = LeaveStatus.PENDING;
 
+    @Column(length = 1000)
+    private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String reports;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }
-

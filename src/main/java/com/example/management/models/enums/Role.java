@@ -1,4 +1,4 @@
-package com.example.management.models.Enum;
+package com.example.management.models.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum Role {
     ADMIN("ADMIN"),
     EMPLOYEE("EMPLOYEE"),
-    HR("HR");
+    HR("HR"),
+    SUPER_HR("SUPER_HR");
 
     private final String value;
 

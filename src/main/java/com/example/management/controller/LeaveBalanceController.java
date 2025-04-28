@@ -22,6 +22,7 @@ public class LeaveBalanceController {
 
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'SUPER_HR')")
     public ResponseEntity<?> getBalanceByUserId(@PathVariable Long userId) {
 
         Optional<LeaveBalance> balance = leaveBalanceService.getLeaveBalanceByUserId(userId);

@@ -1,6 +1,6 @@
 package com.example.management.dto;
 
-import com.example.management.models.Enum.Role;
+import com.example.management.models.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

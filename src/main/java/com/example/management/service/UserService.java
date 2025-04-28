@@ -4,7 +4,7 @@ import com.example.management.dto.UserCreateDto;
 import com.example.management.dto.UserDto;
 import com.example.management.dto.UserUpdateDto;
 import com.example.management.mapper.UserMapper;
-import com.example.management.models.Enum.Role;
+import com.example.management.models.enums.Role;
 import com.example.management.models.User;
 import com.example.management.repositories.UserRepository;
 import com.example.management.response.GetUsersResponse;

@@ -1,6 +1,6 @@
 package com.example.management.repositories;
 
-import com.example.management.models.Enum.LeaveStatus;
+import com.example.management.models.enums.LeaveStatus;
 import com.example.management.models.LeaveRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +12,7 @@ import java.util.Optional;
 
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
+    Optional<LeaveRequest> findFirstByUserIdAndStatusOrderByCreatedAtDesc(Long userId, LeaveStatus status);
 
 
     long countByStatus(LeaveStatus status);

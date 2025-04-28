@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
-    List<User> findByRole(com.example.management.models.Enum.Role role);
+    List<User> findByRole(com.example.management.models.enums.Role role);
 
     @Query("SELECT u FROM User u WHERE u.role IN ('ADMIN', 'HR')")
     List<User> findAdminsAndHr();

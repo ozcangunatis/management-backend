@@ -3,16 +3,18 @@ package com.example.management.service;
 import com.example.management.dto.StatsResponseDto;
 import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
-import com.example.management.models.Enum.LeaveStatus;
+import com.example.management.models.enums.LeaveStatus;
 import com.example.management.models.LeaveBalance;
 import com.example.management.models.LeaveRequest;
 import com.example.management.models.User;
+import com.example.management.models.enums.LeaveTypeEnum;
 import com.example.management.repositories.LeaveBalanceRepository;
 import com.example.management.repositories.LeaveRequestRepository;
+import com.example.management.repositories.LeaveTypeRepository;
 import com.example.management.repositories.UserRepository;
+import com.example.management.request.LeaveRequestCreateRequest;
 import com.example.management.response.LeaveRequestResponse;
 import lombok.RequiredArgsConstructor;
-import com.example.management.dto.LeaveRequestDto;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class LeaveRequestService {
+    private final LeaveTypeRepository leaveTypeRepository;
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final UserRepository userRepository;
@@ -44,42 +47,48 @@ public class LeaveRequestService {
         return leaveRequestRepository.findByUserId(userId);
     }
 
-    //Yeni izin talebi oluşturma
-    @Transactional
-    public LeaveRequest createLeaveRequest(Long userId, LeaveRequest leaveRequest) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found!");
-        }
-        //izin süresi hesaplama
-        User user = userOpt.get();
-        int requestDays = (int) (leaveRequest.getEndDate().toEpochDay() - leaveRequest.getStartDate().toEpochDay()) + 1;
-        if (requestDays < 0) {
+    public LeaveRequest createLeaveRequest(Long userId, LeaveRequestCreateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        int requestDays = calculateDays(request.getStartDate(), request.getEndDate());
+        if (requestDays <= 0) {
             throw new IllegalArgumentException("Invalid date range!");
         }
-        //İzin bakiyesi kontrol
-        Optional<LeaveBalance> balanceOpt = leaveBalanceRepository.findByUserId(userId);
-        if (balanceOpt.isEmpty()) {
-            throw new IllegalArgumentException("Leave balance not found!");
-        }
 
-        LeaveBalance balance = balanceOpt.get();
+        LeaveBalance balance = leaveBalanceRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Leave balance not found!"));
+
         if (balance.getRemainingDays() < requestDays) {
-            throw new IllegalArgumentException("Remaining days not enough!");
+            throw new IllegalArgumentException("Not enough remaining leave days.");
         }
 
+        LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setUser(user);
+
+        com.example.management.models.LeaveType leaveType =
+                leaveTypeRepository.findByLeaveType(request.getLeaveType().name())
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid leave type"));
+
+        leaveRequest.setLeaveType(leaveType);
+
+        leaveRequest.setStartDate(request.getStartDate());
+        leaveRequest.setEndDate(request.getEndDate());
+        leaveRequest.setDescription(request.getDescription());
         leaveRequest.setStatus(LeaveStatus.PENDING);
         leaveRequest.setCreatedAt(LocalDateTime.now());
-        leaveRequestRepository.save(leaveRequest);
+
+        LeaveRequest savedRequest = leaveRequestRepository.save(leaveRequest);
+
         balance.setUsedDays(balance.getUsedDays() + requestDays);
         balance.calculateRemainingDays();
         leaveBalanceRepository.save(balance);
-        return leaveRequest;
 
+        return savedRequest;
     }
+    @Transactional
 
-    private int calculateDays(LocalDate start, LocalDate end) {
+    public int calculateDays(LocalDate start, LocalDate end) {
         return (int) (end.toEpochDay() - start.toEpochDay()) + 1;
     }
 
@@ -102,14 +111,14 @@ public class LeaveRequestService {
         LeaveRequestResponse dto = new LeaveRequestResponse();
         dto.setId(leaveRequest.getId());
         dto.setUserId(leaveRequest.getUser().getId());
-        dto.setLeaveType(leaveRequest.getLeaveType());
+        dto.setLeaveType(leaveRequest.getLeaveType().getLeaveType());
         dto.setStartDate(leaveRequest.getStartDate());
         dto.setEndDate(leaveRequest.getEndDate());
-        dto.setLeaveStatus(leaveRequest.getStatus());
+        dto.setStatus(leaveRequest.getStatus().name());
         return dto;
     }
     private final LeaveRequestMapper leaveRequestMapper;
-    public List<LeaveRequestDto> getAllLeaveRequest() {
+    public List<LeaveRequestResponse> getAllLeaveRequest() {
         List<LeaveRequest> requests = leaveRequestRepository.findAll();
         return leaveRequestMapper.toDtoList(requests);
     }
@@ -134,7 +143,7 @@ public class LeaveRequestService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 
-    public List<LeaveRequestDto> getLeaveRequestsForCurrentUser() {
+    public List<LeaveRequestResponse> getLeaveRequestsForCurrentUser() {
         User currentUser = getCurrentAuthenticatedUser();
         List<LeaveRequest> leaveRequests = leaveRequestRepository.findByUserId(currentUser.getId());
         if(
@@ -145,7 +154,7 @@ public class LeaveRequestService {
                 .map(leaveRequestMapper::toDto)
                 .collect(Collectors.toList());
     }
-    public List<LeaveRequestDto> getAllLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
+    public List<LeaveRequestResponse> getAllLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
         List<LeaveRequest> requests = leaveRequestRepository
                 .findByStartDateGreaterThanEqualAndEndDateLessThanEqual(start, end);
         if(requests.isEmpty()){
@@ -155,7 +164,7 @@ public class LeaveRequestService {
                 .map(leaveRequestMapper::toDto)
                 .collect(Collectors.toList());
     }
-    public List<LeaveRequestDto> getMyLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
+    public List<LeaveRequestResponse> getMyLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
         User currentUser = getCurrentAuthenticatedUser();
 
         List<LeaveRequest> leaveRequests = leaveRequestRepository.findByUserIdAndStartDateBetween(
@@ -169,7 +178,7 @@ public class LeaveRequestService {
                 .map(leaveRequestMapper::toDto)
                 .collect(Collectors.toList());
     }
-    public List<LeaveRequestDto> getLeaveRequestsByUserIdAndDateRange(Long userId, LocalDate start, LocalDate end) {
+    public List<LeaveRequestResponse> getLeaveRequestsByUserIdAndDateRange(Long userId, LocalDate start, LocalDate end) {
         List<LeaveRequest> leaveRequests = leaveRequestRepository.findByUserIdAndStartDateBetween(userId, start, end);
 
         if (leaveRequests.isEmpty()) {
@@ -232,4 +241,5 @@ public class LeaveRequestService {
                 mostPopularLeaveMonth
         );
     }
+
 }

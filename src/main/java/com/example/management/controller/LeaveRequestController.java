@@ -1,29 +1,33 @@
 package com.example.management.controller;
 
-import com.example.management.dto.LeaveRequestDto;
 import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
-import com.example.management.models.Enum.LeaveStatus;
 import com.example.management.models.LeaveRequest;
 import com.example.management.models.User;
+import com.example.management.models.enums.LeaveStatus;
+import com.example.management.repositories.LeaveRequestRepository;
 import com.example.management.repositories.UserRepository;
+import com.example.management.request.LeaveRequestCreateRequest;
 import com.example.management.service.LeaveRequestService;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import com.example.management.request.UpdateLeaveStatusRequest;
 import com.example.management.response.LeaveRequestResponse;
-import com.example.management.request.UpdateLeaveStatusRequest;
+
+
+
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -33,20 +37,31 @@ public class LeaveRequestController {
     private final LeaveRequestService leaveRequestService;
     private final UserRepository userRepository;
     private final LeaveRequestMapper leaveRequestMapper;
+    private final LeaveRequestRepository leaveRequestRepository;
+
 
 
     //yeni izin talebi
-    @PostMapping("/{userId}")
+    @PostMapping
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<?> createLeaveRequest(
-            @PathVariable Long userId,
-            @RequestBody LeaveRequest leaveRequest
-    ) {
-        System.out.println("🚀 Leave request geldi! User ID: " + userId);
-        LeaveRequest createdRequest = leaveRequestService.createLeaveRequest(userId, leaveRequest);
-        return ResponseEntity.ok(createdRequest);
+            @RequestBody LeaveRequestCreateRequest requestDto,
+            Authentication authentication
+    )
+    {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
+        System.out.println("🚀 Leave request geldi! Kullanıcı email: " + email);
+
+        LeaveRequest createdRequest = leaveRequestService.createLeaveRequest(user.getId(), requestDto);
+        LeaveRequestResponse responseDto = leaveRequestMapper.toDto(createdRequest);
+        return ResponseEntity.ok(responseDto);
     }
-@PutMapping("/status")
+
+    @PutMapping("/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<?> updateLeaveStatus(@RequestBody UpdateLeaveStatusRequest request) {
         try {
             LeaveRequestResponse updated = leaveRequestService.updateLeaveRequestStatus(request);
@@ -57,29 +72,43 @@ public class LeaveRequestController {
         }
 }
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<?> getLeaveRequestsByUserId(@PathVariable Long userId) {
-        List<LeaveRequest> leaveRequests = leaveRequestService.getLeaveRequestByUserId(userId);
+        List<LeaveRequestResponse> leaveRequests = leaveRequestService.getLeaveRequestByUserId(userId)
+                .stream()
+                .map(leaveRequestMapper::toDto)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(leaveRequests);
     }
     @GetMapping
-    public ResponseEntity<List<LeaveRequestDto>> getAllLeaveRequests() {
-        List<LeaveRequestDto> leaveRequests = leaveRequestService.getAllLeaveRequest();
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'SUPER_HR')")
+    public ResponseEntity<List<LeaveRequestResponse>> getAllLeaveRequests() {
+        List<LeaveRequestResponse> leaveRequests = leaveRequestService.getAllLeaveRequest();
         return ResponseEntity.ok(leaveRequests);
     }
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteLeaveRequest(@PathVariable Long id) {
-        boolean deleted = leaveRequestService.deleteLeaveRequest(id);
-        if (deleted) {
-            return ResponseEntity.ok("Leave request deleted successfully.");
-        } else {
-            return ResponseEntity.status(404).body("Leave request not found.");
+    @DeleteMapping("/my")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<?> deleteMyPendingLeaveRequest(Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        Optional<LeaveRequest> optionalRequest = leaveRequestRepository
+                .findFirstByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), LeaveStatus.PENDING);
+
+        if (optionalRequest.isEmpty()) {
+            return ResponseEntity.status(404).body("No pending leave request found to delete.");
         }
+
+        leaveRequestRepository.deleteById(optionalRequest.get().getId());
+        return ResponseEntity.ok("Your pending leave request has been deleted.");
     }
+
     @GetMapping("/my-requests")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<?> getMyLeaveRequests() {
         try {
-            List<LeaveRequestDto> leaveRequests = leaveRequestService.getLeaveRequestsForCurrentUser();
+            List<LeaveRequestResponse> leaveRequests = leaveRequestService.getLeaveRequestsForCurrentUser();
             return ResponseEntity.ok(leaveRequests);
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(e.getMessage());
@@ -91,7 +120,7 @@ public class LeaveRequestController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
-            List<LeaveRequestDto> result = leaveRequestService.getAllLeaveRequestsByDateRange(startDate, endDate);
+            List<LeaveRequestResponse> result = leaveRequestService.getAllLeaveRequestsByDateRange(startDate, endDate);
             return ResponseEntity.ok(result);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(404).body(e.getMessage());
@@ -104,7 +133,7 @@ public class LeaveRequestController {
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
         try {
-            List<LeaveRequestDto> result = leaveRequestService.getMyLeaveRequestsByDateRange(startDate, endDate);
+            List<LeaveRequestResponse> result = leaveRequestService.getMyLeaveRequestsByDateRange(startDate, endDate);
             return ResponseEntity.ok(result);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(404).body(e.getMessage());
@@ -117,7 +146,7 @@ public class LeaveRequestController {
            @Validated @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Validated @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
-            List<LeaveRequestDto> result = leaveRequestService.getLeaveRequestsByUserIdAndDateRange(userId, startDate, endDate);
+            List<LeaveRequestResponse> result = leaveRequestService.getLeaveRequestsByUserIdAndDateRange(userId, startDate, endDate);
             return ResponseEntity.ok(result);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(404).body(e.getMessage());
@@ -140,7 +169,7 @@ public class LeaveRequestController {
 
         try {
             LeaveRequest updatedRequest = leaveRequestService.updateLeaveRequestDates(id , currentUserId, requestDto);
-            LeaveRequestDto responseDto = leaveRequestMapper.toDto(updatedRequest);
+            LeaveRequestResponse responseDto = leaveRequestMapper.toDto(updatedRequest);
 
             return ResponseEntity.ok(responseDto);
         } catch (IllegalArgumentException | IllegalStateException | SecurityException e){

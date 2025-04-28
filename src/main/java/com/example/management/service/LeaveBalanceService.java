@@ -39,7 +39,7 @@ public class LeaveBalanceService {
         if (userOptional.isPresent()) {
             LeaveBalance leaveBalance = new LeaveBalance();
             leaveBalance.setUser(userOptional.get());
-            leaveBalance.setTotalDays(totalDays);
+            leaveBalance.setAnnualLeaveDays(totalDays);
             leaveBalance.setUsedDays(0);
             leaveBalance.calculateRemainingDays();
             return leaveBalanceRepository.save(leaveBalance);
@@ -48,9 +48,7 @@ public class LeaveBalanceService {
         }
     }
 
-    /**
-     * Kullanıcının izin günlerini günceller ve kalan günleri hesaplar.
-     */
+
     public LeaveBalance updateUsedDays(Long userId, int usedDays) {
         Optional<LeaveBalance> leaveBalanceOptional = leaveBalanceRepository.findByUserId(userId);
 
@@ -59,7 +57,7 @@ public class LeaveBalanceService {
 
             // Kullanılan izin günlerini güncelle
             int newUsedDays = leaveBalance.getUsedDays() + usedDays;
-            if (newUsedDays > leaveBalance.getTotalDays()) {
+            if (newUsedDays > leaveBalance.getAnnualLeaveDays()) {
                 throw new IllegalArgumentException("Total days exceeded!");
             }
 
@@ -82,7 +80,7 @@ public class LeaveBalanceService {
         if (balanceOpt.isPresent()) {
             LeaveBalance balance = balanceOpt.get();
 
-            balance.setTotalDays(dto.getTotalDays());
+            balance.setAnnualLeaveDays(dto.getTotalDays());
 
 
             int remaining = dto.getTotalDays() - balance.getUsedDays();
