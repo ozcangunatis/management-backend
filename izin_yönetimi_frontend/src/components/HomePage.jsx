@@ -3,7 +3,7 @@ import { BellOutlined, MenuOutlined } from "@ant-design/icons";
 import { Button, Dropdown } from "antd";
 
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { useState } from "react";
+
 import IzinOlustur from "./IzinOlustur";
 import IzinTakvimi from "./IzinTakvimi";
 import IzinOnay from "./IzinOnay";
@@ -76,15 +76,7 @@ function HomePage() {
         </div>
       </header>
 
-      {/* Mobil Sidebar */}
-      <aside
-        className={`sm:hidden fixed top-16 left-0 w-64 h-full bg-gray-100 shadow-lg z-30 transform transition-transform duration-300 ease-in-out ${menuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-      >
-        <nav className="flex flex-col p-4 space-y-4">
-          <SidebarLinks setMenuOpen={setMenuOpen} />
-        </nav>
-      </aside>
+
 
       <div className="flex flex-1 pt-[72px]">
         <aside className="w-64 bg-gray-100 shadow-lg rounded-lg p-4 pt-12 dark:bg-gray-900">
@@ -237,42 +229,6 @@ function HomePage() {
         </div>
       </Modal>
     </div>
-  );
-}
-
-// Sidebar Linkleri ayrı component olarak
-function SidebarLinks({ setMenuOpen }) {
-  const handleClick = () => {
-    if (setMenuOpen) setMenuOpen(false); // mobilde menüyü kapat
-  };
-
-  const linkClass =
-    "px-4 py-2 text-sm font-medium text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 hover:text-gray-900 transition duration-200";
-
-  return (
-    <>
-      <Link to="/dashboard" className={linkClass} onClick={handleClick}>
-        DASHBOARD
-      </Link>
-      <Link to="/izin-olustur" className={linkClass} onClick={handleClick}>
-        İzin Talebi Oluştur
-      </Link>
-      <Link to="/izin-talepleri" className={linkClass} onClick={handleClick}>
-        İzin Talepleri
-      </Link>
-      <Link to="/izin-onay" className={linkClass} onClick={handleClick}>
-        Onay Bekleyenler
-      </Link>
-      <Link to="/izin_takvimi" className={linkClass} onClick={handleClick}>
-        İzin Takvimi
-      </Link>
-      <Link to="/PersonelListesi" className={linkClass} onClick={handleClick}>
-        Personel Listesi
-      </Link>
-      <Link to="/Raporlar" className={linkClass} onClick={handleClick}>
-        Raporlar
-      </Link>
-    </>
   );
 }
 
