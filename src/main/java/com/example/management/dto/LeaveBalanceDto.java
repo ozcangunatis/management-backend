@@ -13,4 +13,8 @@ public class LeaveBalanceDto {
     private Integer usedDays;
     private Integer remainingDays;
 
+    private int annualLeaveThisYear;
+    private int carriedOverFromLastYear;
+    private int totalAvailableDays;
+
 }

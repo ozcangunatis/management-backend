@@ -4,8 +4,10 @@ import com.example.management.dto.UserCreateDto;
 import com.example.management.dto.UserDto;
 import com.example.management.dto.UserUpdateDto;
 import com.example.management.mapper.UserMapper;
+import com.example.management.models.Office;
 import com.example.management.models.enums.Role;
 import com.example.management.models.User;
+import com.example.management.repositories.OfficeRepository;
 import com.example.management.repositories.UserRepository;
 import com.example.management.response.GetUsersResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final OfficeRepository officeRepository;
+
 
 
     public GetUsersResponse getUsers() {
@@ -64,30 +68,52 @@ public class UserService {
     @Transactional
     public UserDto addUser(UserCreateDto userCreateDto) {
         User currentUser = getCurrentAuthenticatedUser();
+
         if (userCreateDto.getPassword() == null || userCreateDto.getPassword().isEmpty()) {
             throw new IllegalArgumentException("Password cannot be null or empty!");
         }
+
+        // HR
         if (currentUser.getRole() == Role.HR && userCreateDto.getRole() != Role.EMPLOYEE) {
             throw new AccessDeniedException("HR can only create EMPLOYEE users.");
         }
 
+        // SUPER_HR
+        if (currentUser.getRole() == Role.SUPER_HR &&
+                !(userCreateDto.getRole() == Role.EMPLOYEE || userCreateDto.getRole() == Role.HR)) {
+            throw new AccessDeniedException("SUPER_HR can only create EMPLOYEE and HR users.");
+        }
+
         log.info("Request DTO user: " + userCreateDto);
+        log.info("DTO'dan gelen jobEntryDate: " + userCreateDto.getJobEntryDate());
 
-        User user = userMapper.toEntity(userCreateDto);
 
-
-        User savedUser = new User();
-        savedUser.setEmail(userCreateDto.getEmail());
-
+        User user = new User();
+        user.setEmail(userCreateDto.getEmail());
+        user.setFirstName(userCreateDto.getFirstName());
+        user.setLastName(userCreateDto.getLastName());
         user.setPassword(passwordEncoder.encode(userCreateDto.getPassword()));
-        log.info("User: " + user);
+        user.setRole(userCreateDto.getRole());
+        user.setPhoneNumber(userCreateDto.getPhoneNumber());
+        user.setTcNo(userCreateDto.getTcNo());
+        user.setAddress(userCreateDto.getAddress());
+        user.setGender(userCreateDto.getGender());
+        user.setJobEntryDate(userCreateDto.getJobEntryDate());
+
+        if (userCreateDto.getOfficeId() != null) {
+            Office office = officeRepository.findById(userCreateDto.getOfficeId())
+                    .orElseThrow(() -> new RuntimeException("Office not found"));
+            user.setOffice(office);
+        }
+
+        log.info("User (mapped + password + full fields): " + user);
+
         user = userRepository.save(user);
 
         return userMapper.toDto(user);
-
     }
 
-        @Transactional
+    @Transactional
         public Optional<UserDto> updateUser(Long id, UserUpdateDto updatedUserDto) {
             return userRepository.findById(id).map(existingUser -> {
                 if (updatedUserDto.getFirstName() != null) {

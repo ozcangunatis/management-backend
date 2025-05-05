@@ -53,7 +53,7 @@ public class LeaveRequestController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        System.out.println("🚀 Leave request geldi! Kullanıcı email: " + email);
+        System.out.println(" Leave request geldi! Kullanıcı email: " + email);
 
         LeaveRequest createdRequest = leaveRequestService.createLeaveRequest(user.getId(), requestDto);
         LeaveRequestResponse responseDto = leaveRequestMapper.toDto(createdRequest);

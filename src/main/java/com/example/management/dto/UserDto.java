@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,4 +17,10 @@ public class UserDto {
     private String lastName;
     private String email;
     private Role role;
+    private String phoneNumber;
+    private String tcNo;
+    private String address;
+    private String gender;
+    private Long officeId;
+    private LocalDate jobEntryDate;
 }

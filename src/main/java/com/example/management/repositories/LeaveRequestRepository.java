@@ -27,4 +27,9 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     Optional<LeaveRequest> findByIdAndUserId(Long id, Long userId);
     List<LeaveRequest> findByStartDateGreaterThanEqualAndEndDateLessThanEqual(LocalDate startDate, LocalDate endDate);
     List<LeaveRequest> findByUserIdAndStartDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+    boolean existsByUserIdAndStatus(Long userId, LeaveStatus status);
+    @Query("SELECT lr FROM LeaveRequest lr WHERE lr.user.id = :userId AND lr.status = 'APPROVED'")
+    List<LeaveRequest> findApprovedLeavesByUserId(Long userId);
+
 }
+

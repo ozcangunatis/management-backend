@@ -8,6 +8,13 @@ import java.util.Optional;
 
 @Repository
 public interface LeaveBalanceRepository extends JpaRepository<LeaveBalance, Long> {
+    Optional<LeaveBalance> findTopByUserIdOrderByLeaveYearDesc(Long userId);
+
+    Optional<LeaveBalance> findByUserIdAndLeaveTypeId(Long userId, Long leaveTypeId);
+
+
     Optional<LeaveBalance> findByUserId(Long userId);
+
     boolean existsByUserIdAndRemainingDaysGreaterThanEqual(Long userId, Integer remainingDays);
 }
+

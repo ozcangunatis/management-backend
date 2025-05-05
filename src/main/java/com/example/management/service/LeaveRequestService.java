@@ -3,6 +3,7 @@ package com.example.management.service;
 import com.example.management.dto.StatsResponseDto;
 import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
+import com.example.management.models.LeaveType;
 import com.example.management.models.enums.LeaveStatus;
 import com.example.management.models.LeaveBalance;
 import com.example.management.models.LeaveRequest;
@@ -41,23 +42,35 @@ public class LeaveRequestService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final UserRepository userRepository;
     private final LeaveBalanceRepository leaveBalanceRepository;
+    private final LeaveBalanceService leaveBalanceService;
 
-    //Belirli kullancıya ait tüm izin taleplerini getir
+
     public List<LeaveRequest> getLeaveRequestByUserId(Long userId) {
         return leaveRequestRepository.findByUserId(userId);
     }
 
     public LeaveRequest createLeaveRequest(Long userId, LeaveRequestCreateRequest request) {
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        boolean hasPending = leaveRequestRepository.existsByUserIdAndStatus(userId, LeaveStatus.PENDING);
+        if (hasPending) {
+            throw new IllegalArgumentException("User has already pending request.");
+        }
 
         int requestDays = calculateDays(request.getStartDate(), request.getEndDate());
         if (requestDays <= 0) {
             throw new IllegalArgumentException("Invalid date range!");
         }
 
-        LeaveBalance balance = leaveBalanceRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Leave balance not found!"));
+        com.example.management.models.LeaveType leaveType =
+                leaveTypeRepository.findByLeaveType(request.getLeaveType().name())
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid leave type"));
+
+        LeaveBalance balance = leaveBalanceRepository
+                .findByUserIdAndLeaveTypeId(userId, leaveType.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Leave balance not found for user and leave type!"));
 
         if (balance.getRemainingDays() < requestDays) {
             throw new IllegalArgumentException("Not enough remaining leave days.");
@@ -65,33 +78,23 @@ public class LeaveRequestService {
 
         LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setUser(user);
-
-        com.example.management.models.LeaveType leaveType =
-                leaveTypeRepository.findByLeaveType(request.getLeaveType().name())
-                        .orElseThrow(() -> new IllegalArgumentException("Invalid leave type"));
-
         leaveRequest.setLeaveType(leaveType);
-
         leaveRequest.setStartDate(request.getStartDate());
         leaveRequest.setEndDate(request.getEndDate());
         leaveRequest.setDescription(request.getDescription());
+        leaveRequest.setReports(request.getReports());
         leaveRequest.setStatus(LeaveStatus.PENDING);
         leaveRequest.setCreatedAt(LocalDateTime.now());
 
-        LeaveRequest savedRequest = leaveRequestRepository.save(leaveRequest);
-
-        balance.setUsedDays(balance.getUsedDays() + requestDays);
-        balance.calculateRemainingDays();
-        leaveBalanceRepository.save(balance);
-
-        return savedRequest;
+        return leaveRequestRepository.save(leaveRequest);
     }
+
     @Transactional
 
     public int calculateDays(LocalDate start, LocalDate end) {
         return (int) (end.toEpochDay() - start.toEpochDay()) + 1;
     }
-
+    @Transactional
     public LeaveRequestResponse updateLeaveRequestStatus(UpdateLeaveStatusRequest request) {
         Optional<LeaveRequest> leaveRequestOpt = leaveRequestRepository.findById(request.getRequestId());
 
@@ -100,12 +103,31 @@ public class LeaveRequestService {
         }
 
         LeaveRequest leaveRequest = leaveRequestOpt.get();
-        leaveRequest.setStatus(request.getNewStatus());
-        LeaveRequest updated = leaveRequestRepository.save(leaveRequest);
+        LeaveStatus newStatus = request.getNewStatus();
+        leaveRequest.setStatus(newStatus);
 
-        // Entity'den Response'a dönüştür
+        if (newStatus == LeaveStatus.APPROVED) {
+            int requestDays = calculateDays(leaveRequest.getStartDate(), leaveRequest.getEndDate());
+            LeaveType leaveType = leaveRequest.getLeaveType();
+
+            LeaveBalance balance = leaveBalanceRepository
+                    .findByUserIdAndLeaveTypeId(leaveRequest.getUser().getId(), leaveType.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Leave balance not found for user and type!"));
+
+            if (balance.getRemainingDays() < requestDays) {
+                throw new IllegalStateException("Not enough leave days to approve this request.");
+            }
+
+            balance.setUsedDays(balance.getUsedDays() + requestDays);
+            balance.calculateRemainingDays();
+            leaveBalanceRepository.save(balance);
+        }
+
+        LeaveRequest updated = leaveRequestRepository.save(leaveRequest);
         return toResponseDto(updated);
     }
+
+
 
     private LeaveRequestResponse toResponseDto(LeaveRequest leaveRequest) {
         LeaveRequestResponse dto = new LeaveRequestResponse();
@@ -115,6 +137,8 @@ public class LeaveRequestService {
         dto.setStartDate(leaveRequest.getStartDate());
         dto.setEndDate(leaveRequest.getEndDate());
         dto.setStatus(leaveRequest.getStatus().name());
+        dto.setReports(leaveRequest.getReports());
+        dto.setDescription(leaveRequest.getDescription());
         return dto;
     }
     private final LeaveRequestMapper leaveRequestMapper;

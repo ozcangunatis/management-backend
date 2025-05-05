@@ -5,6 +5,7 @@ import com.example.management.dto.UserDto;
 import com.example.management.dto.UserUpdateDto;
 import com.example.management.models.enums.Role;
 import com.example.management.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,7 @@ public class UserController {
     private final UserService userService;
     // tüm kullanıcıları getir
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'SUPER_HR')")
     public ResponseEntity<?> getUsers(@RequestParam(required = false) Role role) {
         if (role != null) {
             return ResponseEntity.ok(userService.getUsersByRole(role));
@@ -26,6 +28,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getUsers());
     }
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'SUPER_HR')")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         Optional<UserDto> user = userService.getUserById(id);
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
@@ -48,8 +51,8 @@ public class UserController {
         }
     }
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN',HR)")
-    public ResponseEntity<UserDto> addser(@RequestBody UserCreateDto userDto) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'SUPER_HR')")
+    public ResponseEntity<UserDto> addUser(@Valid @RequestBody UserCreateDto userDto) {
         UserDto createdUser = userService.addUser(userDto);
         return ResponseEntity.ok(createdUser);
     }
