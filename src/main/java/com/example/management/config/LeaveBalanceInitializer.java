@@ -1,8 +1,8 @@
 package com.example.management.config;
 
-import com.example.management.models.LeaveBalance;
-import com.example.management.models.LeaveType;
-import com.example.management.models.User;
+import com.example.management.model.LeaveBalance;
+import com.example.management.model.LeaveType;
+import com.example.management.model.User;
 import com.example.management.repositories.LeaveBalanceRepository;
 import com.example.management.repositories.LeaveTypeRepository;
 import com.example.management.repositories.UserRepository;

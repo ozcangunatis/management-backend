@@ -2,7 +2,7 @@ package com.example.management.service;
 
 import com.example.management.auth.AuthenticationRequest;
 import com.example.management.auth.AuthenticationResponse;
-import com.example.management.models.User;
+import com.example.management.model.User;
 import com.example.management.repositories.UserRepository;
 import com.example.management.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,12 @@ public class AuthenticationService {
         String jwtToken = jwtService.generateToken(user);
 
 
-        return new AuthenticationResponse(jwtToken);
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .build();
     }
 
 

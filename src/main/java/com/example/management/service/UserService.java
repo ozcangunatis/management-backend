@@ -1,12 +1,10 @@
 package com.example.management.service;
 
-import com.example.management.dto.UserCreateDto;
-import com.example.management.dto.UserDto;
-import com.example.management.dto.UserUpdateDto;
+import com.example.management.dto.*;
 import com.example.management.mapper.UserMapper;
-import com.example.management.models.Office;
-import com.example.management.models.enums.Role;
-import com.example.management.models.User;
+import com.example.management.model.Office;
+import com.example.management.model.enums.Role;
+import com.example.management.model.User;
 import com.example.management.repositories.OfficeRepository;
 import com.example.management.repositories.UserRepository;
 import com.example.management.response.GetUsersResponse;
@@ -36,9 +34,18 @@ public class UserService {
 
 
 
+
     public GetUsersResponse getUsers() {
+        User currentUser = getCurrentAuthenticatedUser();
+        List<User> users;
+
+        if (currentUser.getRole() == Role.HR && currentUser.getOffice() != null) {
+            users = userRepository.findByOfficeId(currentUser.getOffice().getId());
+        } else {
+            users = userRepository.findAll();
+        }
+
         GetUsersResponse response = new GetUsersResponse();
-        List<User> users = userRepository.findAll();
 
         if (users.isEmpty()) {
             response.setMessage("No users found");
@@ -47,22 +54,22 @@ public class UserService {
             return response;
         }
 
-        List<UserDto> userDtos = userMapper.toDtoList(users);
-
-
-        response.setMessage("Success");
+        response.setUsers(userMapper.toDtoList(users));
         response.setStatus("success");
+        response.setMessage("Success");
         response.setStatusCode(200);
-        response.setUsers(userDtos);
-
         return response;
     }
 
 
-    public Optional<UserDto> getUserById(long id) {
-        return userRepository.findById(id).map(userMapper::toDto);
 
+
+    public Optional<User> getUserById(long id) {
+        return userRepository.findById(id);
     }
+
+
+
 
 
     @Transactional
@@ -82,6 +89,12 @@ public class UserService {
         if (currentUser.getRole() == Role.SUPER_HR &&
                 !(userCreateDto.getRole() == Role.EMPLOYEE || userCreateDto.getRole() == Role.HR)) {
             throw new AccessDeniedException("SUPER_HR can only create EMPLOYEE and HR users.");
+        }
+
+        if (currentUser.getRole() == Role.HR) {
+            if (userCreateDto.getOfficeId() == null || !userCreateDto.getOfficeId().equals(currentUser.getOffice().getId())) {
+                throw new AccessDeniedException("HR can only create users for their own office.");
+            }
         }
 
         log.info("Request DTO user: " + userCreateDto);
@@ -114,45 +127,93 @@ public class UserService {
     }
 
     @Transactional
-        public Optional<UserDto> updateUser(Long id, UserUpdateDto updatedUserDto) {
-            return userRepository.findById(id).map(existingUser -> {
-                if (updatedUserDto.getFirstName() != null) {
-                    existingUser.setFirstName(updatedUserDto.getFirstName());
-                }
-                if (updatedUserDto.getLastName() != null) {
-                    existingUser.setLastName(updatedUserDto.getLastName());
-                }
-                if (updatedUserDto.getEmail() != null&& !existingUser.getEmail().equals(updatedUserDto.getEmail())) {
-                    if(userRepository.existsByEmail(updatedUserDto.getEmail())) {
-                        throw new IllegalArgumentException("Email already exists!");
-                    }
-                    existingUser.setEmail(updatedUserDto.getEmail());
-                }
-                // Şifre güncelleme işlemi
-                if (updatedUserDto.getPassword() != null) {
-                    existingUser.setPassword(passwordEncoder.encode(updatedUserDto.getPassword()));
-                }
+    public User updateUser(Long id, UserUpdateDto updatedUserDto) {
+        User currentUser = getCurrentAuthenticatedUser();
 
-                userRepository.save(existingUser);
-                return userMapper.toDto(existingUser);
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-            });
+
+        if (currentUser.getRole() == Role.HR) {
+            if (currentUser.getOffice() == null || existingUser.getOffice() == null ||
+                    !currentUser.getOffice().getId().equals(existingUser.getOffice().getId())) {
+                throw new AccessDeniedException("HR can only update users from their own office.");
+            }
         }
+
+
+
+
+        if (updatedUserDto.getFirstName() != null) {
+            existingUser.setFirstName(updatedUserDto.getFirstName());
+        }
+        if (updatedUserDto.getLastName() != null) {
+            existingUser.setLastName(updatedUserDto.getLastName());
+        }
+        if (updatedUserDto.getEmail() != null && !existingUser.getEmail().equals(updatedUserDto.getEmail())) {
+            if (userRepository.existsByEmail(updatedUserDto.getEmail())) {
+                throw new IllegalArgumentException("Email already exists!");
+            }
+            existingUser.setEmail(updatedUserDto.getEmail());
+        }
+        if (updatedUserDto.getPassword() != null) {
+            existingUser.setPassword(passwordEncoder.encode(updatedUserDto.getPassword()));
+        }
+
+        userRepository.save(existingUser);
+        return existingUser;
+    }
+
+
+
 
     public void deleteUser(Long userId) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            throw new IllegalArgumentException("User not found!");
+        User currentUser = getCurrentAuthenticatedUser();
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+
+        if (currentUser.getRole() == Role.HR) {
+            if (currentUser.getOffice() == null || targetUser.getOffice() == null ||
+                    !currentUser.getOffice().getId().equals(targetUser.getOffice().getId())) {
+                throw new AccessDeniedException("HR can only delete users from their own office.");
+            }
         }
+
+
         userRepository.deleteById(userId);
     }
+
+
+
+
     public List<UserDto> getUsersByRole(Role role) {
-        List<User> users = userRepository.findByRole(role);
+        User currentUser = getCurrentAuthenticatedUser();
+        List<User> users;
+
+        if (currentUser.getRole() == Role.HR && currentUser.getOffice() != null) {
+            users = userRepository.findByRole(role).stream()
+                    .filter(user -> user.getOffice() != null &&
+                            user.getOffice().getId().equals(currentUser.getOffice().getId()))
+                    .collect(Collectors.toList());
+        }
+
+        else if (currentUser.getRole() == Role.SUPER_HR) {
+            users = userRepository.findByRole(role).stream()
+                    .filter(user -> user.getOffice() != null)
+                    .collect(Collectors.toList());
+        }
+
+        else {
+            users = userRepository.findByRole(role);
+        }
+
         return users.stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
-    private User getCurrentAuthenticatedUser() {
+
+    public User getCurrentAuthenticatedUser() {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -168,8 +229,27 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
 
-        System.out.println("Aktif kullanıcı: " + user.getEmail() + " | Rolü: " + user.getRole());
+        System.out.println("Active User" + user.getEmail() + " | Rolü: " + user.getRole());
 
         return user;
     }
+    public boolean resetPassword(ResetPasswordRequestDTO request) {
+        Optional<User> optionalUser = userRepository.findByEmail(request.getEmail());
+        if (optionalUser.isEmpty()) {
+            return false;
+        }
+        User user = optionalUser.get();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        return true;
+    }
+
+    public boolean validateForgotPasswordInfo(ForgotPasswordRequestDTO request) {
+        return userRepository.findByEmailAndTcNoAndPhoneNumber(
+                request.getEmail(),
+                request.getTcNo(),
+                request.getPhoneNumber()
+        ).isPresent();
+    }
+
 }

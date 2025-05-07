@@ -1,6 +1,6 @@
-package com.example.management.models;
+package com.example.management.model;
 
-import com.example.management.models.enums.LeaveStatus;
+import com.example.management.model.enums.LeaveStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,4 +46,7 @@ public class LeaveRequest {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+
 }
+

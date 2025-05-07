@@ -1,7 +1,6 @@
 package com.example.management.config;
 
-import com.example.management.models.LeaveType;
-import com.example.management.models.enums.LeaveTypeEnum;
+import com.example.management.model.enums.LeaveTypeEnum;
 import com.example.management.repositories.LeaveTypeRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,7 @@ public class LeaveTypeInitializer {
         for (LeaveTypeEnum type : LeaveTypeEnum.values()) {
             boolean exists = leaveTypeRepository.findByLeaveType(type.name()).isPresent();
             if (!exists) {
-                LeaveType leaveType = new LeaveType();
+                com.example.management.model.LeaveType leaveType = new com.example.management.model.LeaveType();
                 leaveType.setLeaveType(type.name());
                 leaveTypeRepository.save(leaveType);
                 System.out.println("✅ LeaveType eklendi: " + type.name());

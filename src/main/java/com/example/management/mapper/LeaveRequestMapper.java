@@ -2,9 +2,9 @@ package com.example.management.mapper;
 
 import com.example.management.request.LeaveRequestCreateRequest;
 import com.example.management.response.LeaveRequestResponse;
-import com.example.management.models.LeaveRequest;
-import com.example.management.models.LeaveType;
-import com.example.management.models.User;
+import com.example.management.model.LeaveRequest;
+import com.example.management.model.LeaveType;
+import com.example.management.model.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

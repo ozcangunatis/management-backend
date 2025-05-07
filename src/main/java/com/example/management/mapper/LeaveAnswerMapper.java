@@ -1,6 +1,6 @@
 package com.example.management.mapper;
 
-import com.example.management.models.LeaveAnswer;
+import com.example.management.model.LeaveAnswer;
 import com.example.management.response.LeaveAnswerResponse;
 import org.springframework.stereotype.Component;
 

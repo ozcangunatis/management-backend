@@ -1,12 +1,10 @@
 package com.example.management.service;
 
 import com.example.management.dto.LeaveBalanceDto;
-import com.example.management.dto.UpdateLeaveBalanceRequestDto;
-import com.example.management.models.LeaveBalance;
-import com.example.management.models.LeaveRequest;
-import com.example.management.models.User;
+import com.example.management.model.LeaveBalance;
+import com.example.management.model.User;
 import com.example.management.mapper.LeaveBalanceMapper;
-import com.example.management.models.enums.Role;
+import com.example.management.model.enums.Role;
 import com.example.management.repositories.LeaveBalanceRepository;
 import com.example.management.repositories.UserRepository;
 import jakarta.transaction.Transactional;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.Optional;
 
 @Service

@@ -3,12 +3,13 @@ package com.example.management.service;
 import com.example.management.dto.StatsResponseDto;
 import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
-import com.example.management.models.LeaveType;
-import com.example.management.models.enums.LeaveStatus;
-import com.example.management.models.LeaveBalance;
-import com.example.management.models.LeaveRequest;
-import com.example.management.models.User;
-import com.example.management.models.enums.LeaveTypeEnum;
+import com.example.management.model.LeaveType;
+import com.example.management.model.enums.LeaveStatus;
+import com.example.management.model.LeaveBalance;
+import com.example.management.model.LeaveRequest;
+import com.example.management.model.User;
+import com.example.management.model.enums.LeaveTypeEnum;
+import com.example.management.model.enums.Role;
 import com.example.management.repositories.LeaveBalanceRepository;
 import com.example.management.repositories.LeaveRequestRepository;
 import com.example.management.repositories.LeaveTypeRepository;
@@ -25,6 +26,7 @@ import com.example.management.request.UpdateLeaveStatusRequest;
 
 
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -43,41 +45,73 @@ public class LeaveRequestService {
     private final UserRepository userRepository;
     private final LeaveBalanceRepository leaveBalanceRepository;
     private final LeaveBalanceService leaveBalanceService;
+    private final LeaveRequestMapper leaveRequestMapper;
+
+
 
 
     public List<LeaveRequest> getLeaveRequestByUserId(Long userId) {
         return leaveRequestRepository.findByUserId(userId);
     }
-
     public LeaveRequest createLeaveRequest(Long userId, LeaveRequestCreateRequest request) {
-
-        User user = userRepository.findById(userId)
+        User currentUser = getCurrentAuthenticatedUser();
+        User targetUser = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+
+        if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
+
+        } else if (currentUser.getRole() == Role.HR) {
+            if (currentUser.getOffice() == null || targetUser.getOffice() == null ||
+                    !currentUser.getOffice().getId().equals(targetUser.getOffice().getId())) {
+                throw new SecurityException("You can only create leave requests for users in your office.");
+            }
+        } else if (currentUser.getRole() == Role.EMPLOYEE) {
+            if (!currentUser.getId().equals(targetUser.getId())) {
+                throw new SecurityException("You can only create leave requests for yourself.");
+            }
+        } else {
+            throw new SecurityException("Unauthorized operation.");
+        }
+
 
         boolean hasPending = leaveRequestRepository.existsByUserIdAndStatus(userId, LeaveStatus.PENDING);
         if (hasPending) {
             throw new IllegalArgumentException("User has already pending request.");
         }
 
+
         int requestDays = calculateDays(request.getStartDate(), request.getEndDate());
         if (requestDays <= 0) {
             throw new IllegalArgumentException("Invalid date range!");
         }
 
-        com.example.management.models.LeaveType leaveType =
-                leaveTypeRepository.findByLeaveType(request.getLeaveType().name())
-                        .orElseThrow(() -> new IllegalArgumentException("Invalid leave type"));
+
+        LeaveType leaveType = leaveTypeRepository.findByLeaveType(request.getLeaveTypeEnum().name())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid leave type"));
+
 
         LeaveBalance balance = leaveBalanceRepository
                 .findByUserIdAndLeaveTypeId(userId, leaveType.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Leave balance not found for user and leave type!"));
 
-        if (balance.getRemainingDays() < requestDays) {
-            throw new IllegalArgumentException("Not enough remaining leave days.");
+
+        if ("PAID".equals(leaveType.getLeaveType())) {
+            if (balance.getRemainingDays() < requestDays) {
+                throw new IllegalArgumentException("Not enough remaining leave days.");
+            }
+
+
+            balance.setUsedDays(balance.getUsedDays() + requestDays);
+            balance.calculateRemainingDays();
+            leaveBalanceRepository.save(balance);
         }
 
+
+
+
         LeaveRequest leaveRequest = new LeaveRequest();
-        leaveRequest.setUser(user);
+        leaveRequest.setUser(targetUser);
         leaveRequest.setLeaveType(leaveType);
         leaveRequest.setStartDate(request.getStartDate());
         leaveRequest.setEndDate(request.getEndDate());
@@ -89,6 +123,10 @@ public class LeaveRequestService {
         return leaveRequestRepository.save(leaveRequest);
     }
 
+
+
+
+
     @Transactional
 
     public int calculateDays(LocalDate start, LocalDate end) {
@@ -96,13 +134,26 @@ public class LeaveRequestService {
     }
     @Transactional
     public LeaveRequestResponse updateLeaveRequestStatus(UpdateLeaveStatusRequest request) {
-        Optional<LeaveRequest> leaveRequestOpt = leaveRequestRepository.findById(request.getRequestId());
+        User currentUser = getCurrentAuthenticatedUser();
 
-        if (leaveRequestOpt.isEmpty()) {
-            throw new IllegalArgumentException("Leave request not found!");
+        LeaveRequest leaveRequest = leaveRequestRepository.findById(request.getRequestId())
+                .orElseThrow(() -> new IllegalArgumentException("Leave request not found!"));
+
+
+        if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
+
+        }
+        else if (currentUser.getRole() == Role.HR) {
+            if (currentUser.getOffice() == null || leaveRequest.getUser().getOffice() == null ||
+                    !currentUser.getOffice().getId().equals(leaveRequest.getUser().getOffice().getId())) {
+                throw new SecurityException("You can only update leave requests for your office.");
+            }
+        }
+        else {
+            throw new SecurityException("You are not authorized to update leave request statuses.");
         }
 
-        LeaveRequest leaveRequest = leaveRequestOpt.get();
+
         LeaveStatus newStatus = request.getNewStatus();
         leaveRequest.setStatus(newStatus);
 
@@ -129,6 +180,7 @@ public class LeaveRequestService {
 
 
 
+
     private LeaveRequestResponse toResponseDto(LeaveRequest leaveRequest) {
         LeaveRequestResponse dto = new LeaveRequestResponse();
         dto.setId(leaveRequest.getId());
@@ -141,11 +193,26 @@ public class LeaveRequestService {
         dto.setDescription(leaveRequest.getDescription());
         return dto;
     }
-    private final LeaveRequestMapper leaveRequestMapper;
+
     public List<LeaveRequestResponse> getAllLeaveRequest() {
-        List<LeaveRequest> requests = leaveRequestRepository.findAll();
+        User currentUser = getCurrentAuthenticatedUser();
+        List<LeaveRequest> requests;
+
+        if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
+
+            requests = leaveRequestRepository.findAll();
+        }
+        else if (currentUser.getRole() == Role.HR) {
+
+            requests = leaveRequestRepository.findByUserOfficeId(currentUser.getOffice().getId());
+        }
+        else {
+            throw new SecurityException("You are not authorized to view leave requests.");
+        }
+
         return leaveRequestMapper.toDtoList(requests);
     }
+
     @Transactional
     public boolean deleteLeaveRequest(Long id){
         if (leaveRequestRepository.existsById(id)) {
@@ -179,15 +246,29 @@ public class LeaveRequestService {
                 .collect(Collectors.toList());
     }
     public List<LeaveRequestResponse> getAllLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
-        List<LeaveRequest> requests = leaveRequestRepository
-                .findByStartDateGreaterThanEqualAndEndDateLessThanEqual(start, end);
-        if(requests.isEmpty()){
+        User currentUser = getCurrentAuthenticatedUser();
+        List<LeaveRequest> requests;
+
+        if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
+            // Admin ve Super HR tüm izinleri görür
+            requests = leaveRequestRepository.findByStartDateGreaterThanEqualAndEndDateLessThanEqual(start, end);
+        } else if (currentUser.getRole() == Role.HR) {
+            // HR sadece kendi ofisindeki izinleri görebilir
+            requests = leaveRequestRepository.findByUser_Office_IdAndStartDateBetween(
+                    currentUser.getOffice().getId(), start, end);
+        } else {
+            throw new SecurityException("You are not authorized to view leave requests.");
+        }
+
+        if (requests.isEmpty()) {
             throw new IllegalStateException("No leave requests found!");
         }
+
         return requests.stream()
                 .map(leaveRequestMapper::toDto)
                 .collect(Collectors.toList());
     }
+
     public List<LeaveRequestResponse> getMyLeaveRequestsByDateRange(LocalDate start, LocalDate end) {
         User currentUser = getCurrentAuthenticatedUser();
 
@@ -265,5 +346,54 @@ public class LeaveRequestService {
                 mostPopularLeaveMonth
         );
     }
+    public void grantLeaveToUser(Long userId, LeaveTypeEnum leaveTypeEnum, int days) {
+        User currentUser = getCurrentAuthenticatedUser();
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+
+        if (currentUser.getRole() == Role.HR) {
+            if (currentUser.getOffice() == null || targetUser.getOffice() == null ||
+                    !currentUser.getOffice().getId().equals(targetUser.getOffice().getId())) {
+                throw new SecurityException("HR can only assign leave to users in their office.");
+
+            }
+        }
+
+        if (!(currentUser.getRole() == Role.SUPER_HR || currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.HR)) {
+            throw new SecurityException("Only HR, SUPER_HR, or ADMIN can assign leave.");
+        }
+
+        LeaveType leaveType = leaveTypeRepository
+                .findByLeaveType(leaveTypeEnum.name())
+                .orElseThrow(() -> new IllegalArgumentException("LeaveType not found!"));
+
+        LeaveBalance balance = leaveBalanceRepository
+                .findByUserIdAndLeaveTypeId(userId, leaveType.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Leave balance not found for user and leave type!"));
+
+        boolean isPaid = "PAID".equals(leaveType.getLeaveType());
+
+        if (isPaid) {
+            if (balance.getRemainingDays() < days) {
+                throw new IllegalArgumentException("Not enough remaining leave days.");
+            }
+            balance.setUsedDays(balance.getUsedDays() + days);
+            balance.calculateRemainingDays();
+            leaveBalanceRepository.save(balance);
+        }
+
+        LeaveRequest leaveRequest = new LeaveRequest();
+        leaveRequest.setUser(targetUser);
+        leaveRequest.setLeaveType(leaveType);
+        leaveRequest.setStartDate(LocalDate.now());
+        leaveRequest.setEndDate(LocalDate.now().plusDays(days));
+        leaveRequest.setStatus(LeaveStatus.APPROVED);
+        leaveRequest.setCreatedAt(LocalDateTime.now());
+
+        leaveRequestRepository.save(leaveRequest);
+    }
+
+
 
 }

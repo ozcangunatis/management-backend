@@ -1,4 +1,4 @@
-package com.example.management.models;
+package com.example.management.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -24,5 +24,5 @@ public class Office {
     @Column(name = "authorized_person")
     private Integer authorizedPerson;
 
-    // commit
+
 }

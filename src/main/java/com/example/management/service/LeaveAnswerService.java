@@ -1,10 +1,10 @@
 package com.example.management.service;
 
 import com.example.management.mapper.LeaveAnswerMapper;
-import com.example.management.models.LeaveAnswer;
-import com.example.management.models.LeaveRequest;
-import com.example.management.models.User;
-import com.example.management.models.enums.LeaveStatus;
+import com.example.management.model.LeaveAnswer;
+import com.example.management.model.LeaveRequest;
+import com.example.management.model.User;
+import com.example.management.model.enums.LeaveStatus;
 import com.example.management.repositories.LeaveAnswerRepository;
 import com.example.management.repositories.LeaveRequestRepository;
 import com.example.management.repositories.UserRepository;

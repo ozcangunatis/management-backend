@@ -1,7 +1,7 @@
 package com.example.management.mapper;
 
 import com.example.management.dto.LeaveBalanceDto;
-import com.example.management.models.LeaveBalance;
+import com.example.management.model.LeaveBalance;
 import org.springframework.stereotype.Component;
 
 @Component

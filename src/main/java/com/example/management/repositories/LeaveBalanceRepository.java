@@ -1,6 +1,6 @@
 package com.example.management.repositories;
 
-import com.example.management.models.LeaveBalance;
+import com.example.management.model.LeaveBalance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

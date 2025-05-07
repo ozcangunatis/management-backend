@@ -3,7 +3,7 @@ package com.example.management.mapper;
 import com.example.management.dto.UserCreateDto;
 import com.example.management.dto.UserDto;
 import com.example.management.dto.UserUpdateDto;
-import com.example.management.models.User;
+import com.example.management.model.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

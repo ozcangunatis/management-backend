@@ -1,6 +1,6 @@
-package com.example.management.models;
+package com.example.management.model;
 
-import com.example.management.models.enums.Role;
+import com.example.management.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,7 +20,7 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_user")
-    private long id;
+    private Long id;
 
     @Column(nullable = false , length = 50)
     private String firstName;

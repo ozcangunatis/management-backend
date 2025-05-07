@@ -1,4 +1,4 @@
-package com.example.management.models.enums;
+package com.example.management.model.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

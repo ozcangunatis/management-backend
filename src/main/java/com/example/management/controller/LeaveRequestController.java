@@ -1,10 +1,12 @@
 package com.example.management.controller;
 
+import com.example.management.dto.GrantLeaveRequestDTO;
 import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
-import com.example.management.models.LeaveRequest;
-import com.example.management.models.User;
-import com.example.management.models.enums.LeaveStatus;
+import com.example.management.model.LeaveRequest;
+import com.example.management.model.User;
+import com.example.management.model.enums.LeaveStatus;
+import com.example.management.model.enums.Role;
 import com.example.management.repositories.LeaveRequestRepository;
 import com.example.management.repositories.UserRepository;
 import com.example.management.request.LeaveRequestCreateRequest;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -40,8 +43,6 @@ public class LeaveRequestController {
     private final LeaveRequestRepository leaveRequestRepository;
 
 
-
-    //yeni izin talebi
     @PostMapping
     @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<?> createLeaveRequest(
@@ -53,12 +54,11 @@ public class LeaveRequestController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        System.out.println(" Leave request geldi! Kullanıcı email: " + email);
-
         LeaveRequest createdRequest = leaveRequestService.createLeaveRequest(user.getId(), requestDto);
         LeaveRequestResponse responseDto = leaveRequestMapper.toDto(createdRequest);
         return ResponseEntity.ok(responseDto);
     }
+
 
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
@@ -140,7 +140,7 @@ public class LeaveRequestController {
         }
     }
     @GetMapping("/filter-by-date/{userId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR' , 'SUPER_HR')")
     public ResponseEntity<?> filterLeaveRequestsByDateAndUser(
             @PathVariable Long userId,
            @Validated @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -174,6 +174,29 @@ public class LeaveRequestController {
             return ResponseEntity.ok(responseDto);
         } catch (IllegalArgumentException | IllegalStateException | SecurityException e){
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PostMapping("/assign")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_HR', 'HR')")
+    public ResponseEntity<?> assignLeaveToUser(
+            @RequestBody GrantLeaveRequestDTO request,
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        try {
+            leaveRequestService.grantLeaveToUser(
+                    request.getUserId(),
+                    request.getLeaveTypeEnum(),
+                    request.getDays()
+            );
+            return ResponseEntity.ok("Leave granted successfully.");
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 

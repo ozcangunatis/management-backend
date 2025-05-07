@@ -1,6 +1,6 @@
 package com.example.management.controller;
 
-import com.example.management.models.Office;
+import com.example.management.model.Office;
 import com.example.management.service.OfficeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
