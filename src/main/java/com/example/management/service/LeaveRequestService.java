@@ -1,6 +1,6 @@
 package com.example.management.service;
 
-import com.example.management.dto.StatsResponseDto;
+import com.example.management.dto.DashboardStatsDTO;
 import com.example.management.dto.UpdateLeaveRequestDatesRequest;
 import com.example.management.mapper.LeaveRequestMapper;
 import com.example.management.model.LeaveType;
@@ -98,13 +98,25 @@ public class LeaveRequestService {
 
         if ("PAID".equals(leaveType.getLeaveType())) {
             if (balance.getRemainingDays() < requestDays) {
-                throw new IllegalArgumentException("Not enough remaining leave days.");
+
+                int newUsedDays = balance.getUsedDays() + requestDays;
+
+
+                if (balance.getUsedDays() == 0 && newUsedDays < 0) {
+
+                    balance.setUsedDays(newUsedDays);
+                } else {
+
+                    balance.setUsedDays(balance.getUsedDays() + requestDays);
+                }
+
+                balance.calculateRemainingDays();
+                leaveBalanceRepository.save(balance);
+            } else {
+                balance.setUsedDays(balance.getUsedDays() + requestDays);
+                balance.calculateRemainingDays();
+                leaveBalanceRepository.save(balance);
             }
-
-
-            balance.setUsedDays(balance.getUsedDays() + requestDays);
-            balance.calculateRemainingDays();
-            leaveBalanceRepository.save(balance);
         }
 
 
@@ -315,37 +327,7 @@ public class LeaveRequestService {
         }
         return leaveRequestRepository.save(leaveRequest);
     }
-     //===========================================DASHBOARD======================================
-    public StatsResponseDto getStats() {
-        long totalUsers = userRepository.count();
-        long totalLeaveRequests = leaveRequestRepository.count();
-        long pendingLeaveRequests = leaveRequestRepository.countByStatus(LeaveStatus.PENDING);
-        long approvedLeaveRequests = leaveRequestRepository.countByStatus(LeaveStatus.APPROVED);
-        long rejectedLeaveRequests = leaveRequestRepository.countByStatus(LeaveStatus.REJECTED);
 
-        List<Object[]> montlyCounts = leaveRequestRepository.countLeaveRequestsByMonth();
-
-        String mostPopularLeaveMonth= "N/A";
-        int maxCount= 0;
-
-        for (Object[] row : montlyCounts) {
-            int monthValue = ((Number) row[0]).intValue(); // 1-12
-            int count = ((Number) row[1]).intValue();
-
-            if (count > maxCount) {
-                maxCount = count;
-                mostPopularLeaveMonth = Month.of(monthValue).name();
-            }
-        }
-        return new StatsResponseDto(
-                totalUsers,
-                totalLeaveRequests,
-                pendingLeaveRequests,
-                approvedLeaveRequests,
-                rejectedLeaveRequests,
-                mostPopularLeaveMonth
-        );
-    }
     public void grantLeaveToUser(Long userId, LeaveTypeEnum leaveTypeEnum, int days) {
         User currentUser = getCurrentAuthenticatedUser();
         User targetUser = userRepository.findById(userId)

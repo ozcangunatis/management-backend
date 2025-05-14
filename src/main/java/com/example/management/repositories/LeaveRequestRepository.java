@@ -44,5 +44,22 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
 
 
     List<LeaveRequest> findByUser_Office_IdAndStartDateBetween(Long officeId, LocalDate start, LocalDate end);
+    int countByCreatedAtAfter(LocalDate date);
+    @Query(value = """
+    SELECT COALESCE(SUM(DATE_PART('day', end_date - start_date) + 1), 0)
+    FROM leave_request
+    WHERE status = 'APPROVED' 
+      AND start_date >= :start 
+      AND start_date <= :end
+    """, nativeQuery = true)
+    int sumApprovedLeaveDaysThisMonth(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    @Query(value = """
+    SELECT COUNT(DISTINCT user_id)
+    FROM leave_request
+    WHERE status = 'APPROVED'
+      AND start_date >= :start 
+      AND start_date <= :end
+    """, nativeQuery = true)
+    int countDistinctUsersWithApprovedLeavesThisMonth(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
 }

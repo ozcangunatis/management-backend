@@ -55,5 +55,4 @@ public class AuthenticationController {
         userRepository.save(user);
         return ResponseEntity.ok("Password reset successful.");
     }
-
 }

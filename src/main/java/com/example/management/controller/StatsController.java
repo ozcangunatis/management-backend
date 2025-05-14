@@ -1,24 +1,20 @@
 package com.example.management.controller;
 
-import com.example.management.dto.StatsResponseDto;
-import com.example.management.service.LeaveRequestService;
+import com.example.management.dto.DashboardStatsDTO;
+import com.example.management.service.LeaveStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/stats")
+@RequiredArgsConstructor
 public class StatsController {
-    private final LeaveRequestService leaveRequestService;
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    private final LeaveStatsService statsService;
 
-    public ResponseEntity<StatsResponseDto> getStats() {
-        return ResponseEntity.ok(leaveRequestService.getStats());
+    @GetMapping("/dashboard")
+    public ResponseEntity<DashboardStatsDTO> getDashboardStats() {
+        return ResponseEntity.ok(statsService.getDashboardStats());
     }
 }
