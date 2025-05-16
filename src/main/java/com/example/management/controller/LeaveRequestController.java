@@ -61,7 +61,7 @@ public class LeaveRequestController {
 
 
     @PutMapping("/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'SUPER_HR')")
     public ResponseEntity<?> updateLeaveStatus(@RequestBody UpdateLeaveStatusRequest request) {
         try {
             LeaveRequestResponse updated = leaveRequestService.updateLeaveRequestStatus(request);
