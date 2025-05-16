@@ -251,5 +251,14 @@ public class UserService {
                 request.getPhoneNumber()
         ).isPresent();
     }
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public List<User> getUsersByOfficeId(Long officeId) {
+        return userRepository.findAllByOfficeId(officeId);
+    }
+
+
 
 }

@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -121,6 +122,32 @@ public class UserController {
             return ResponseEntity.badRequest().body("User not found.");
         }
     }
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_HR', 'HR')")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        User currentUser = userService.getCurrentAuthenticatedUser();
+
+        List<User> users;
+
+        if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
+
+            users = userService.getAllUsers();
+        } else if (currentUser.getRole() == Role.HR) {
+
+            Long officeId = currentUser.getOffice().getId();
+            users = userService.getUsersByOfficeId(officeId);
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<UserDto> userDtos = users.stream()
+                .map(userMapper::toDto)
+                .toList();
+
+        return ResponseEntity.ok(userDtos);
+    }
+
+
 
 }
 
