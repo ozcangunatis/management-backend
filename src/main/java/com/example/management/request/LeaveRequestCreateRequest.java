@@ -7,7 +7,6 @@ import java.time.LocalDate;
 
 @Data
 public class LeaveRequestCreateRequest {
-private long userId;
 private LeaveTypeEnum leaveTypeEnum;
 private LocalDate startDate;
 private LocalDate endDate;
