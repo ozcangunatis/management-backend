@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,10 +27,10 @@ public class LeaveBalanceService {
     private final UserRepository userRepository;
     private final LeaveBalanceMapper leaveBalanceMapper;
 
-
-    public Optional<LeaveBalance> getLeaveBalanceByUserId(Long userId) {
+    public List<LeaveBalance> getLeaveBalancesByUserId(Long userId) {
         return leaveBalanceRepository.findByUserId(userId);
     }
+
 
 
 
@@ -79,7 +80,7 @@ public class LeaveBalanceService {
         int currentYear = LocalDate.now().getYear();
 
 
-        LeaveBalance balance = leaveBalanceRepository.findByUserId(user.getId())
+        LeaveBalance balance = leaveBalanceRepository.findTopByUserIdOrderByLeaveYearDesc(user.getId())
                 .orElseGet(() -> {
                     int annualLeave = calculateAnnualLeaveDays(user.getJobEntryDate());
                     LeaveBalance newBalance = new LeaveBalance();
@@ -90,6 +91,7 @@ public class LeaveBalanceService {
                     newBalance.calculateRemainingDays();
                     return leaveBalanceRepository.save(newBalance);
                 });
+
 
         int carriedOver = leaveBalanceRepository.findTopByUserIdOrderByLeaveYearDesc(user.getId())
                 .map(LeaveBalance::getRemainingDays)
@@ -111,7 +113,7 @@ public class LeaveBalanceService {
     }
     @Transactional
     public void incrementUsedDays(Long userId, int addedDays) {
-        LeaveBalance balance = leaveBalanceRepository.findByUserId(userId)
+        LeaveBalance balance = leaveBalanceRepository.findTopByUserIdOrderByLeaveYearDesc(userId)
                 .orElseThrow(() -> new RuntimeException("LeaveBalance not found"));
 
         int newUsed = balance.getUsedDays() + addedDays;
@@ -125,6 +127,7 @@ public class LeaveBalanceService {
 
         leaveBalanceRepository.save(balance);
     }
+
 
 
 

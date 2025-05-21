@@ -262,10 +262,8 @@ public class LeaveRequestService {
         List<LeaveRequest> requests;
 
         if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
-            // Admin ve Super HR tüm izinleri görür
             requests = leaveRequestRepository.findByStartDateGreaterThanEqualAndEndDateLessThanEqual(start, end);
         } else if (currentUser.getRole() == Role.HR) {
-            // HR sadece kendi ofisindeki izinleri görebilir
             requests = leaveRequestRepository.findByUser_Office_IdAndStartDateBetween(
                     currentUser.getOffice().getId(), start, end);
         } else {
