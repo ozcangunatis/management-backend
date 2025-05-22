@@ -17,7 +17,7 @@ public class AdminSetupService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    // Admin kullanıcı bilgilerini config dosyasından alıyoruz
+
     @Value("${admin.email}")
     private String adminEmail;
 
@@ -33,7 +33,6 @@ public class AdminSetupService {
     @Bean
     public CommandLineRunner setupAdminUser() {
         return args -> {
-            // Eğer admin kullanıcı yoksa, oluşturulacak
             if (!userRepository.existsByEmail(adminEmail)) {
                 User admin = new User();
                 admin.setEmail(adminEmail);

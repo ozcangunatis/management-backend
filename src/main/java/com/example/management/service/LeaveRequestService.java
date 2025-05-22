@@ -148,7 +148,7 @@ public class LeaveRequestService {
     public LeaveRequestResponse updateLeaveRequestStatus(UpdateLeaveStatusRequest request) {
         User currentUser = getCurrentAuthenticatedUser();
 
-        LeaveRequest leaveRequest = leaveRequestRepository.findById(request.getRequestId())
+        LeaveRequest leaveRequest = leaveRequestRepository.findWithUserOfficeById(request.getRequestId())
                 .orElseThrow(() -> new IllegalArgumentException("Leave request not found!"));
 
 
@@ -208,22 +208,25 @@ public class LeaveRequestService {
 
     public List<LeaveRequestResponse> getAllLeaveRequest() {
         User currentUser = getCurrentAuthenticatedUser();
+
         List<LeaveRequest> requests;
 
-        if (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_HR) {
+        switch (currentUser.getRole()) {
+            case ADMIN, SUPER_HR -> {
 
-            requests = leaveRequestRepository.findAll();
-        }
-        else if (currentUser.getRole() == Role.HR) {
+                requests = leaveRequestRepository.findAll();
+            }
+            case HR -> {
 
-            requests = leaveRequestRepository.findByUserOfficeId(currentUser.getOffice().getId());
-        }
-        else {
-            throw new SecurityException("You are not authorized to view leave requests.");
+                Long officeId = currentUser.getOffice().getId();
+                requests = leaveRequestRepository.findByUserOfficeId(officeId);
+            }
+            default -> throw new SecurityException("You are not authorized to view leave requests.");
         }
 
         return leaveRequestMapper.toDtoList(requests);
     }
+
 
     @Transactional
     public boolean deleteLeaveRequest(Long id){

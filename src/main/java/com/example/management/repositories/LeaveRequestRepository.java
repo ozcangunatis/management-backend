@@ -2,6 +2,7 @@ package com.example.management.repositories;
 
 import com.example.management.model.enums.LeaveStatus;
 import com.example.management.model.LeaveRequest;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -61,5 +62,8 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
       AND start_date <= :end
     """, nativeQuery = true)
     int countDistinctUsersWithApprovedLeavesThisMonth(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @EntityGraph(attributePaths = {"user", "user.office"})
+    Optional<LeaveRequest> findWithUserOfficeById(Long id);
 
 }
