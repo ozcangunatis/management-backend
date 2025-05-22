@@ -64,6 +64,10 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<LeaveRequest> leaveRequests;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LeaveBalance> leaveBalances;
+
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

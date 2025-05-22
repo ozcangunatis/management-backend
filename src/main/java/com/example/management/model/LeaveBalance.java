@@ -35,6 +35,8 @@ public class LeaveBalance {
     @Column(name = "remaining_days", nullable = false)
     private int remainingDays;
 
+
+
     @PrePersist
     @PreUpdate
     public void calculateRemainingDays() {
